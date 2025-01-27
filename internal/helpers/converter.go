@@ -11,3 +11,11 @@ func ConvertMessageToProto(m tgbotapi.Message) *pb.Message {
 		Text:      m.Text,
 	}
 }
+
+// TODO нужно вынести это все как-то не в отдельный конверт
+func ConvertMessage2ToProto(m tgbotapi.Message) *pb.QueuingMessage {
+	return &pb.QueuingMessage{
+		MessageId: uint64(m.MessageID),
+		Text:      m.Text,
+	}
+}

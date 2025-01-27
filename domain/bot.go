@@ -11,6 +11,9 @@ import (
 	pb "telegram-bots-gateway/internal/grpc"
 )
 
+const ReplyBotType = "replybot"
+const QueuingBotType = "queuingbot"
+
 type Bot struct {
 	BotAPI      *tgbotapi.BotAPI
 	BotSettings BotSettings
@@ -26,6 +29,14 @@ func (r Bot) Handle(update *tgbotapi.Update) {
 				return
 			}
 		}
+	case pb.QueueingBotClient:
+		{
+			_, err := v.Handle(context.Background(), helpers.ConvertMessage2ToProto(*update.Message))
+			if err != nil {
+				return
+			}
+		}
+
 	}
 }
 
@@ -44,10 +55,22 @@ func NewBot(settings BotSettings) (bot Bot, err error) {
 		return Bot{}, err
 	}
 
+	var client interface{}
+	switch settings.ServiceType {
+	case ReplyBotType:
+		{
+			client = pb.NewRouteGuideClient(conn)
+		}
+	case QueuingBotType:
+		{
+			client = pb.NewQueueingBotClient(conn)
+		}
+	}
+
 	return Bot{
 		BotAPI:      botApi,
 		BotSettings: settings,
-		BotClient:   grpc.NewService(conn, pb.NewRouteGuideClient(conn)),
+		BotClient:   grpc.NewService(conn, client),
 	}, nil
 }
 

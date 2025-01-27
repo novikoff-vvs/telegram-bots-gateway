@@ -1,28 +1,22 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
-	"log"
-	"net/url"
-	"os"
-	"strconv"
-	"time"
-
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/labstack/echo/v4"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"log"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"telegram-bots-gateway/bot"
+	botSettings "telegram-bots-gateway/bot-settings"
+	"telegram-bots-gateway/domain"
+	"telegram-bots-gateway/internal/handlers"
+	pgRep "telegram-bots-gateway/internal/repository/postgresql"
 
-	mysqlRepo "github.com/bxcodec/go-clean-arch/internal/repository/mysql"
-
-	"github.com/bxcodec/go-clean-arch/article"
-	"github.com/bxcodec/go-clean-arch/internal/rest"
-	"github.com/bxcodec/go-clean-arch/internal/rest/middleware"
 	"github.com/joho/godotenv"
-)
-
-const (
-	defaultTimeout = 30
-	defaultAddress = ":9090"
 )
 
 func init() {
@@ -32,58 +26,69 @@ func init() {
 	}
 }
 
-func main() {
-	//prepare database
+func initDatabase() (*gorm.DB, error) {
 	dbHost := os.Getenv("DATABASE_HOST")
 	dbPort := os.Getenv("DATABASE_PORT")
 	dbUser := os.Getenv("DATABASE_USER")
 	dbPass := os.Getenv("DATABASE_PASS")
 	dbName := os.Getenv("DATABASE_NAME")
-	connection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, dbHost, dbPort, dbName)
-	val := url.Values{}
-	val.Add("parseTime", "1")
-	val.Add("loc", "Asia/Jakarta")
-	dsn := fmt.Sprintf("%s?%s", connection, val.Encode())
-	dbConn, err := sql.Open(`mysql`, dsn)
+
+	dsn := "host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Europe/Moscow"
+	connection := fmt.Sprintf(dsn, dbHost, dbUser, dbPass, dbName, dbPort)
+	db, err := gorm.Open(postgres.Open(connection), &gorm.Config{})
 	if err != nil {
-		log.Fatal("failed to open connection to database", err)
+		return nil, err
 	}
-	err = dbConn.Ping()
+
+	err = db.AutoMigrate(&domain.BotSettings{})
 	if err != nil {
-		log.Fatal("failed to ping database ", err)
+		return nil, err
 	}
 
-	defer func() {
-		err := dbConn.Close()
-		if err != nil {
-			log.Fatal("got error when closing the DB connection", err)
-		}
-	}()
-	// prepare echo
+	return db, nil
+}
 
-	e := echo.New()
-	e.Use(middleware.CORS)
-	timeoutStr := os.Getenv("CONTEXT_TIMEOUT")
-	timeout, err := strconv.Atoi(timeoutStr)
+func main() {
+	dbConn, err := initDatabase()
 	if err != nil {
-		log.Println("failed to parse timeout, using default timeout")
-		timeout = defaultTimeout
+		log.Fatal(err)
 	}
-	timeoutContext := time.Duration(timeout) * time.Second
-	e.Use(middleware.SetRequestContextWithTimeout(timeoutContext))
+	botSettingsRepo := pgRep.NewBotSettingsRepository(dbConn)
 
-	// Prepare Repository
-	authorRepo := mysqlRepo.NewAuthorRepository(dbConn)
-	articleRepo := mysqlRepo.NewArticleRepository(dbConn)
-
-	// Build service Layer
-	svc := article.NewService(articleRepo, authorRepo)
-	rest.NewArticleHandler(e, svc)
-
-	// Start Server
-	address := os.Getenv("SERVER_ADDRESS")
-	if address == "" {
-		address = defaultAddress
+	svc := botSettings.NewService(botSettingsRepo)
+	botsvc := bot.NewService(*svc)
+	bots, err := botsvc.GetBots()
+	if err != nil {
+		log.Fatal(err)
 	}
-	log.Fatal(e.Start(address)) //nolint
+
+	wg := &sync.WaitGroup{}
+	var activeHandlers []handlers.BotHandler
+	for _, b := range bots {
+		wg.Add(1)
+		h := handlers.NewBotHandler(b)
+		activeHandlers = append(activeHandlers, *h)
+		go func() {
+			err := h.Handle(wg)
+			if err != nil {
+				log.Println(err)
+			}
+		}()
+	}
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+	gracefulShutdown(signalChan, wg, activeHandlers)
+}
+
+func gracefulShutdown(signalChan chan os.Signal, wg *sync.WaitGroup, handlers []handlers.BotHandler) {
+	sigReceived := <-signalChan
+	log.Printf("Received signal: %v. Shutting down gracefully...", sigReceived)
+	for _, h := range handlers {
+		h.Close()
+	}
+	wg.Wait()
+
+	log.Println("Server gracefully stopped")
 }

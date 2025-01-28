@@ -2,9 +2,11 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	gs "google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"log"
 	"telegram-bots-gateway/grpc"
 	"telegram-bots-gateway/internal/helpers"
 
@@ -20,21 +22,41 @@ type Bot struct {
 	BotClient   grpc.Service
 }
 
-func (r Bot) Handle(update *tgbotapi.Update) {
-	switch v := r.BotClient.Client.(type) {
+func (b Bot) Handle(update *tgbotapi.Update) {
+	switch v := b.BotClient.Client.(type) {
 	case pb.RouteGuideClient:
 		{
 			_, err := v.Handle(context.Background(), helpers.ConvertMessageToProto(*update.Message))
 			if err != nil {
-				return
+				log.Println(err)
 			}
 		}
 	case pb.QueueingBotClient:
 		{
-			_, err := v.Handle(context.Background(), helpers.ConvertMessage2ToProto(*update.Message))
-			if err != nil {
-				return
+			if update.Message != nil {
+				r, err := v.HandleMessage(context.Background(), helpers.ConvertMessage2ToProto(*update.Message))
+				var m tgbotapi.MessageConfig
+				if err != nil {
+					log.Println(err)
+				}
+				err = json.Unmarshal([]byte(r.Result), &m)
+				if err != nil {
+					log.Println(err)
+				}
+				_, err = b.BotAPI.Send(m)
+				if err != nil {
+					log.Println(err)
+				}
+			} else if update.CallbackQuery != nil {
+				callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
+
+				if _, err := b.BotAPI.Request(callback); err != nil {
+					log.Println(err)
+				}
+
+				log.Println(update.CallbackQuery.Message.Text)
 			}
+
 		}
 
 	}

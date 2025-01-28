@@ -15,7 +15,8 @@ func ConvertMessageToProto(m tgbotapi.Message) *pb.Message {
 // TODO нужно вынести это все как-то не в отдельный конверт
 func ConvertMessage2ToProto(m tgbotapi.Message) *pb.QueuingMessage {
 	return &pb.QueuingMessage{
-		MessageId: uint64(m.MessageID),
-		Text:      m.Text,
+		MessageId:  uint64(m.MessageID),
+		FromChatId: m.From.ID,
+		Text:       m.Text,
 	}
 }

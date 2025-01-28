@@ -19,7 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	QueueingBot_Handle_FullMethodName = "/QueueingBot.QueueingBot/Handle"
+	QueueingBot_Handle_FullMethodName         = "/QueueingBot.QueueingBot/Handle"
+	QueueingBot_HandleMessage_FullMethodName  = "/QueueingBot.QueueingBot/HandleMessage"
+	QueueingBot_HandleCallback_FullMethodName = "/QueueingBot.QueueingBot/HandleCallback"
 )
 
 // QueueingBotClient is the client API for QueueingBot service.
@@ -29,6 +31,8 @@ const (
 // Сервис, который предоставляет метод для получения информации о точке
 type QueueingBotClient interface {
 	Handle(ctx context.Context, in *QueuingMessage, opts ...grpc.CallOption) (*QueuingBoolResult, error)
+	HandleMessage(ctx context.Context, in *QueuingMessage, opts ...grpc.CallOption) (*QueuingJsonResult, error)
+	HandleCallback(ctx context.Context, in *QueuingCallback, opts ...grpc.CallOption) (*QueuingBoolResult, error)
 }
 
 type queueingBotClient struct {
@@ -49,6 +53,26 @@ func (c *queueingBotClient) Handle(ctx context.Context, in *QueuingMessage, opts
 	return out, nil
 }
 
+func (c *queueingBotClient) HandleMessage(ctx context.Context, in *QueuingMessage, opts ...grpc.CallOption) (*QueuingJsonResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(QueuingJsonResult)
+	err := c.cc.Invoke(ctx, QueueingBot_HandleMessage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *queueingBotClient) HandleCallback(ctx context.Context, in *QueuingCallback, opts ...grpc.CallOption) (*QueuingBoolResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(QueuingBoolResult)
+	err := c.cc.Invoke(ctx, QueueingBot_HandleCallback_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // QueueingBotServer is the server API for QueueingBot service.
 // All implementations must embed UnimplementedQueueingBotServer
 // for forward compatibility.
@@ -56,6 +80,8 @@ func (c *queueingBotClient) Handle(ctx context.Context, in *QueuingMessage, opts
 // Сервис, который предоставляет метод для получения информации о точке
 type QueueingBotServer interface {
 	Handle(context.Context, *QueuingMessage) (*QueuingBoolResult, error)
+	HandleMessage(context.Context, *QueuingMessage) (*QueuingJsonResult, error)
+	HandleCallback(context.Context, *QueuingCallback) (*QueuingBoolResult, error)
 	mustEmbedUnimplementedQueueingBotServer()
 }
 
@@ -68,6 +94,12 @@ type UnimplementedQueueingBotServer struct{}
 
 func (UnimplementedQueueingBotServer) Handle(context.Context, *QueuingMessage) (*QueuingBoolResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Handle not implemented")
+}
+func (UnimplementedQueueingBotServer) HandleMessage(context.Context, *QueuingMessage) (*QueuingJsonResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HandleMessage not implemented")
+}
+func (UnimplementedQueueingBotServer) HandleCallback(context.Context, *QueuingCallback) (*QueuingBoolResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HandleCallback not implemented")
 }
 func (UnimplementedQueueingBotServer) mustEmbedUnimplementedQueueingBotServer() {}
 func (UnimplementedQueueingBotServer) testEmbeddedByValue()                     {}
@@ -108,6 +140,42 @@ func _QueueingBot_Handle_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _QueueingBot_HandleMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueuingMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueueingBotServer).HandleMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: QueueingBot_HandleMessage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueueingBotServer).HandleMessage(ctx, req.(*QueuingMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _QueueingBot_HandleCallback_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueuingCallback)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueueingBotServer).HandleCallback(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: QueueingBot_HandleCallback_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueueingBotServer).HandleCallback(ctx, req.(*QueuingCallback))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // QueueingBot_ServiceDesc is the grpc.ServiceDesc for QueueingBot service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -118,6 +186,14 @@ var QueueingBot_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Handle",
 			Handler:    _QueueingBot_Handle_Handler,
+		},
+		{
+			MethodName: "HandleMessage",
+			Handler:    _QueueingBot_HandleMessage_Handler,
+		},
+		{
+			MethodName: "HandleCallback",
+			Handler:    _QueueingBot_HandleCallback_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

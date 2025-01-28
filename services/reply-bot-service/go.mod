@@ -1,4 +1,4 @@
-module replybot
+module reply-bot-service
 
 go 1.23.5
 

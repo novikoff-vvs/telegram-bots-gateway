@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v5.28.1
-// source: services/files-bot-service/proto/files-bot-service.proto
+// source: services/files-bot/proto/files-bot-service.proto
 
 package grpc
 
@@ -117,5 +117,5 @@ var FilesBot_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "services/files-bot-service/proto/files-bot-service.proto",
+	Metadata: "services/files-bot/proto/files-bot-service.proto",
 }

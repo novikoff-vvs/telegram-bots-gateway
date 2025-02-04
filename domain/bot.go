@@ -72,6 +72,18 @@ func (r Bot) Handle(update *tgbotapi.Update) {
 					log.Println(err)
 					return
 				}
+			} else if response.CopyMessageJson != "" {
+				var copyMessage tgbotapi.CopyMessageConfig
+				err = json.Unmarshal([]byte(response.CopyMessageJson), &copyMessage)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+				_, err = r.BotAPI.Send(copyMessage)
+				if err != nil {
+					log.Println(err)
+					return
+				}
 			} else {
 				log.Println("Не пришло сообщение!")
 				return

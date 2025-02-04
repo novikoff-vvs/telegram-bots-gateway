@@ -6,7 +6,7 @@ COPY ./ .
 
 RUN go mod tidy
 
-COPY .env .env
+#COPY .env .env
 
 #RUN apk --no-cache --update add build-base
 

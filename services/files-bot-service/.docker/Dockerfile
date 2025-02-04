@@ -20,4 +20,6 @@ COPY --from=build --chown=nobody:nobody /app/dist /app
 
 WORKDIR /app
 
+EXPOSE 50053
+
 ENTRYPOINT ["/app/application"]

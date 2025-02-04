@@ -4,6 +4,7 @@ version: '3.9'
 services:
   db:
     image: postgres
+    container_name: db
     restart: always
     # set shared memory limit when using docker-compose
     shm_size: 128mb
@@ -20,6 +21,40 @@ services:
       - 5436:5432
     networks:
       - local
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+
+  gateway:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    container_name: gateway
+    volumes:
+      - .env:/app/.env
+    depends_on:
+      - db
+    networks:
+      - local
+
+  files_bot:
+    container_name: files_bot
+    build:
+      dockerfile: .docker/Dockerfile
+      context: ./services/files-bot-service/
+    volumes:
+      - ./services/files-bot-service/.env:/app/.env
+    networks:
+      - local
+    depends_on:
+      - gateway
+    expose:
+      - "50053"
+
 
 networks:
   local:
+
+volumes:
+  pgdata:   # Docker-managed volume
+    driver: local  # Используем стандартный локальный драйвер

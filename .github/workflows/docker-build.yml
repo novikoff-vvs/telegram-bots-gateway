@@ -1,0 +1,33 @@
+name: Build and Push Docker Image
+
+# Триггер: рабочий процесс будет запускаться при push в ветку master
+on:
+  push:
+    branches:
+      - master  # Событие будет срабатывать только при пуше в ветку master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # используется последняя версия Ubuntu для работы
+
+    steps:
+      # Шаг 1: Получаем исходный код репозитория
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Шаг 2: Логинимся в Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}  # Имя пользователя Docker Hub (или другого реестра)
+          password: ${{ secrets.DOCKER_PASSWORD }}  # Токен или пароль
+
+      # Шаг 3: Сборка Docker-образа
+      - name: Build Docker image
+        run: |
+          docker build -t gateway:${{ github.sha }} .  # Контейнер будет называться 'gateway', тег — хеш коммита
+
+      # Шаг 4: Публикуем образ в Docker Hub
+      - name: Push Docker image
+        run: |
+          docker push gateway:${{ github.sha }}

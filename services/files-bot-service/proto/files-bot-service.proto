@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option go_package = "internal/grpc";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.FilesBot";
+option java_outer_classname = "FilesBotProto";
+
+package FilesBot;
+
+service FilesBot {
+  rpc Handle(FilesBotMessage) returns (FilesBotResult) {}
+}
+
+
+message FilesBotMessage {
+  string json = 1;
+}
+
+message FilesBotResult {
+  string newMessageJson = 1;
+  string forwardMessageJson = 2;
+}

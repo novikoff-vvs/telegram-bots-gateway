@@ -2,9 +2,11 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	gs "google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"log"
 	"telegram-bots-gateway/grpc"
 	"telegram-bots-gateway/internal/helpers"
 
@@ -13,6 +15,7 @@ import (
 
 const ReplyBotType = "replybot"
 const QueuingBotType = "queuingbot"
+const FilesBotType = "filesbot"
 
 type Bot struct {
 	BotAPI      *tgbotapi.BotAPI
@@ -36,7 +39,44 @@ func (r Bot) Handle(update *tgbotapi.Update) {
 				return
 			}
 		}
+	case pb.FilesBotClient:
+		{
+			msg, _ := json.Marshal(update.Message)
+			response, err := v.Handle(context.Background(), &pb.FilesBotMessage{Json: string(msg)})
+			if err != nil {
+				log.Println(err)
+				return
+			}
 
+			if response.NewMessageJson != "" {
+				var newMessage tgbotapi.MessageConfig
+				err = json.Unmarshal([]byte(response.NewMessageJson), &newMessage)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+				_, err = r.BotAPI.Send(newMessage)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+			} else if response.ForwardMessageJson != "" {
+				var forwardMessage tgbotapi.ForwardConfig
+				err = json.Unmarshal([]byte(response.ForwardMessageJson), &forwardMessage)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+				_, err = r.BotAPI.Send(forwardMessage)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+			} else {
+				log.Println("Не пришло сообщение!")
+				return
+			}
+		}
 	}
 }
 
@@ -64,6 +104,10 @@ func NewBot(settings BotSettings) (bot Bot, err error) {
 	case QueuingBotType:
 		{
 			client = pb.NewQueueingBotClient(conn)
+		}
+	case FilesBotType:
+		{
+			client = pb.NewFilesBotClient(conn)
 		}
 	}
 

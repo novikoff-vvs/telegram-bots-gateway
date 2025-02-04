@@ -26,9 +26,7 @@ services:
 
 
   gateway:
-    build:
-      dockerfile: Dockerfile
-      context: .
+    image: ghcr.io/novikoff-vvs/telegram-bots-gateway:master
     container_name: gateway
     volumes:
       - .env:/app/.env
@@ -39,9 +37,7 @@ services:
 
   files_bot:
     container_name: files_bot
-    build:
-      dockerfile: .docker/Dockerfile
-      context: ./services/files-bot-service/
+    image: ghcr.io/novikoff-vvs/files-bot:main
     volumes:
       - ./services/files-bot-service/.env:/app/.env
     networks:

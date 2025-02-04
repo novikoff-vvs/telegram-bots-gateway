@@ -6,8 +6,6 @@ COPY ./ .
 
 RUN go mod tidy
 
-COPY .env .env
-
 #RUN apk --no-cache --update add build-base
 
 RUN go build -o /app/dist/application ./app/main.go

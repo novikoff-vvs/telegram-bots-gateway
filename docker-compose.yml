@@ -8,25 +8,20 @@ services:
     restart: always
     # set shared memory limit when using docker-compose
     shm_size: 128mb
-    # or set shared memory limit when deploy via swarm stack
-    #volumes:
-    #  - type: tmpfs
-    #    target: /dev/shm
-    #    tmpfs:
-    #      size: 134217728 # 128*2^20 bytes = 128Mb
     environment:
       POSTGRES_PASSWORD: ${DATABASE_PASS}
       POSTGRES_DB: ${DATABASE_NAME}
-    ports:
-      - 5436:5432
     networks:
       - local
+    ports:
+      - "5436:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
 
   gateway:
     image: ghcr.io/novikoff-vvs/telegram-bots-gateway:master
+    pull_policy: always
     container_name: gateway
     volumes:
       - .env:/app/.env
@@ -37,9 +32,10 @@ services:
 
   files_bot:
     container_name: files_bot
+    pull_policy: always
     image: ghcr.io/novikoff-vvs/files-bot:main
     volumes:
-      - ./services/files-bot-service/.env:/app/.env
+      - ./services/files-bot/.env:/app/.env
     networks:
       - local
     depends_on:

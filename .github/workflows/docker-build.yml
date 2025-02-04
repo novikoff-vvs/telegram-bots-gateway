@@ -3,7 +3,7 @@ name: Build and Push Docker Image to GitHub Packages
 on:
   push:
     branches:
-      - main  # Запускать workflow при пуше в ветку main
+      - master  # Запускать workflow при пуше в ветку main
 
 jobs:
   build:

@@ -15,19 +15,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Шаг 2: Логинимся в Docker Hub
-      - name: Log in to Docker Hub
+      # Шаг 2: Логинимся в GitHub Container Registry (GitHub Packages)
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}  # Имя пользователя Docker Hub (или другого реестра)
-          password: ${{ secrets.DOCKER_PASSWORD }}  # Токен или пароль
+          username: ${{ github.actor }}  # Используем имя пользователя GitHub
+          password: ${{ secrets.GITHUB_TOKEN }}  # Используем секретный токен GITHUB_TOKEN
 
       # Шаг 3: Сборка Docker-образа
       - name: Build Docker image
         run: |
-          docker build -t gateway:${{ github.sha }} .  # Контейнер будет называться 'gateway', тег — хеш коммита
+          docker build -t ghcr.io/${{ github.repository_owner }}/gateway:${{ github.sha }} .  # Указываем путь для GitHub Packages
 
-      # Шаг 4: Публикуем образ в Docker Hub
+      # Шаг 4: Публикуем образ в GitHub Container Registry
       - name: Push Docker image
         run: |
-          docker push gateway:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner }}/gateway:${{ github.sha }}  # Пушим образ в GitHub Packages
